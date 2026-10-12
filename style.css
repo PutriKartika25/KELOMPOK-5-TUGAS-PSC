@@ -1,0 +1,878 @@
+
+/* =========================================
+   GROQCHAT - FRONTEND & DASHBOARD
+   File: style.css
+   ========================================= */
+
+/* 1. RESET DAN VARIABEL */
+:root {
+    --primary: #635bff;
+    --primary-dark: #4f46e5;
+    --primary-light: #eeedff;
+
+    --background: #f5f7fb;
+    --surface: #ffffff;
+    --surface-soft: #f8f9fc;
+
+    --text: #202438;
+    --text-muted: #7c8498;
+
+    --border: #e8eaf1;
+    --success: #16a36a;
+    --danger: #e5484d;
+    --warning: #e9a23b;
+
+    --radius: 16px;
+    --shadow: 0 5px 24px rgba(30, 41, 59, 0.045);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 24px;
+}
+
+body {
+    font-family: Inter, -apple-system, BlinkMacSystemFont,
+        "Segoe UI", Roboto, Arial, sans-serif;
+    background: var(--background);
+    color: var(--text);
+    line-height: 1.6;
+    font-size: 14px;
+}
+
+button,
+textarea {
+    font: inherit;
+}
+
+button {
+    cursor: pointer;
+}
+
+button:focus-visible,
+a:focus-visible,
+textarea:focus-visible {
+    outline: 3px solid rgba(99, 91, 255, 0.3);
+    outline-offset: 3px;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+h1,
+h2,
+h3 {
+    line-height: 1.35;
+}
+
+h1 {
+    font-size: 25px;
+    font-weight: 750;
+}
+
+h2 {
+    font-size: 17px;
+    font-weight: 700;
+}
+
+p {
+    color: var(--text-muted);
+}
+
+/* 2. LAYOUT UTAMA */
+
+.app-container {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* 3. SIDEBAR */
+
+.sidebar {
+    width: 250px;
+    min-width: 250px;
+    min-height: 100vh;
+    padding: 27px 18px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 7px;
+}
+
+.brand-icon {
+    width: 43px;
+    height: 43px;
+    border-radius: 13px;
+    background: linear-gradient(135deg, #7770ff, #5045df);
+    color: #fff;
+    display: grid;
+    place-items: center;
+    font-size: 24px;
+    font-weight: 800;
+    box-shadow: 0 5px 14px rgba(99, 91, 255, 0.23);
+}
+
+.brand h2 {
+    font-size: 19px;
+    letter-spacing: -0.5px;
+}
+
+.brand small {
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+.new-chat-btn {
+    width: 100%;
+    border: none;
+    border-radius: 11px;
+    background: var(--primary);
+    color: white;
+    padding: 13px 14px;
+    font-weight: 650;
+    transition: background 0.2s, transform 0.2s;
+}
+
+.new-chat-btn:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+}
+
+.sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    color: #646c80;
+    border-radius: 10px;
+    font-weight: 550;
+    transition: background 0.2s, color 0.2s;
+}
+
+.nav-item span {
+    font-size: 17px;
+}
+
+.nav-item:hover,
+.nav-item.active {
+    color: var(--primary);
+    background: var(--primary-light);
+}
+
+.sidebar-bottom {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 17px 8px 0;
+    border-top: 1px solid var(--border);
+}
+
+.sidebar-bottom small {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.connection-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.status-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    min-width: 8px;
+    border-radius: 50%;
+    background: var(--warning);
+}
+
+/* 4. KONTEN UTAMA */
+
+.main-content {
+    flex: 1;
+    min-width: 0;
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 30px 34px;
+}
+
+.topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 30px;
+}
+
+.topbar h1 {
+    margin-bottom: 6px;
+    letter-spacing: -0.7px;
+}
+
+.topbar p {
+    font-size: 13px;
+}
+
+.model-badge {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 30px;
+    background: var(--surface);
+    white-space: nowrap;
+    font-size: 12px;
+    font-weight: 650;
+}
+
+/* 5. DASHBOARD STATISTIK */
+
+.dashboard-section {
+    margin-bottom: 23px;
+}
+
+.dashboard-section > h2 {
+    margin-bottom: 15px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 17px;
+}
+
+.stat-card {
+    min-width: 0;
+    padding: 21px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 28px rgba(30, 41, 59, 0.075);
+}
+
+.stat-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 550;
+}
+
+.stat-heading span:last-child {
+    font-size: 19px;
+}
+
+.stat-card h3 {
+    margin: 17px 0 5px;
+    font-size: clamp(22px, 2.2vw, 30px);
+    font-weight: 750;
+    letter-spacing: -0.8px;
+    overflow-wrap: anywhere;
+}
+
+.stat-card p {
+    font-size: 11px;
+}
+
+/* 6. KARTU LIMIT */
+
+.limit-card,
+.chart-card,
+.chat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+}
+
+.limit-card {
+    padding: 23px;
+    margin-bottom: 23px;
+}
+
+.section-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    margin-bottom: 23px;
+}
+
+.section-heading h2 {
+    margin-bottom: 5px;
+}
+
+.section-heading p {
+    font-size: 12px;
+}
+
+.limit-badge {
+    flex-shrink: 0;
+    padding: 6px 11px;
+    background: #fff5df;
+    color: #986414;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 650;
+}
+
+.limit-info,
+.limit-details {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.limit-info {
+    margin-bottom: 12px;
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+.limit-info strong {
+    color: var(--text);
+    font-size: 13px;
+}
+
+.progress-track {
+    width: 100%;
+    height: 10px;
+    border-radius: 20px;
+    overflow: hidden;
+    background: #eceef6;
+}
+
+.progress-fill {
+    width: 0%;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #817aff, #5548eb);
+    transition: width 0.4s ease;
+}
+
+.limit-details {
+    margin-top: 10px;
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.limit-note {
+    margin-top: 18px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: var(--surface-soft);
+    font-size: 11px;
+    line-height: 1.7;
+}
+
+/* 7. GRAFIK */
+
+.chart-card {
+    padding: 23px;
+    margin-bottom: 23px;
+}
+
+.chart-label {
+    padding: 6px 11px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-muted);
+    font-size: 11px;
+}
+
+.chart-container {
+    position: relative;
+    width: 100%;
+    height: 290px;
+}
+
+.chart-container canvas {
+    max-width: 100%;
+}
+
+.chart-message {
+    margin-top: 12px;
+    font-size: 11px;
+}
+
+/* 8. AREA CHAT */
+
+.chat-card {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.chat-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 22px 24px;
+    border-bottom: 1px solid var(--border);
+}
+
+.chat-header h2 {
+    margin-bottom: 5px;
+}
+
+.chat-header p {
+    font-size: 12px;
+}
+
+.secondary-btn {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-muted);
+    padding: 9px 12px;
+    border-radius: 9px;
+    font-size: 11px;
+    white-space: nowrap;
+    transition: background 0.2s, color 0.2s;
+}
+
+.secondary-btn:hover {
+    background: var(--surface-soft);
+    color: var(--text);
+}
+
+.chat-messages {
+    min-height: 300px;
+    max-height: 520px;
+    overflow-y: auto;
+    padding: 25px;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    scroll-behavior: smooth;
+}
+
+.message {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    max-width: 100%;
+}
+
+.message-avatar {
+    width: 35px;
+    height: 35px;
+    min-width: 35px;
+    border-radius: 11px;
+    display: grid;
+    place-items: center;
+    font-size: 11px;
+    font-weight: 750;
+}
+
+.assistant-message .message-avatar {
+    background: var(--primary-light);
+    color: var(--primary);
+}
+
+.user-message {
+    flex-direction: row-reverse;
+}
+
+.user-message .message-avatar {
+    background: #e3f7ed;
+    color: var(--success);
+}
+
+.message-content {
+    min-width: 0;
+    max-width: 85%;
+    padding-top: 3px;
+}
+
+.message-content strong {
+    display: block;
+    margin-bottom: 7px;
+    font-size: 12px;
+}
+
+.message-content p {
+    color: #454d61;
+    font-size: 13px;
+    line-height: 1.8;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.user-message .message-content {
+    padding: 12px 15px;
+    background: var(--primary-light);
+    border-radius: 13px 4px 13px 13px;
+}
+
+.user-message .message-content strong {
+    color: var(--primary-dark);
+}
+
+.user-message .message-content p {
+    color: #38327b;
+}
+
+.chat-form {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    padding: 18px 22px;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+}
+
+.chat-form textarea {
+    flex: 1;
+    min-width: 0;
+    min-height: 48px;
+    max-height: 150px;
+    resize: vertical;
+    padding: 13px 15px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface-soft);
+    color: var(--text);
+    outline: none;
+    line-height: 1.6;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.chat-form textarea::placeholder {
+    color: #9ba1b1;
+}
+
+.chat-form textarea:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(99, 91, 255, 0.09);
+}
+
+.chat-form button {
+    min-height: 48px;
+    padding: 0 21px;
+    border: none;
+    border-radius: 11px;
+    background: var(--primary);
+    color: white;
+    font-weight: 650;
+    transition: background 0.2s;
+}
+
+.chat-form button:hover {
+    background: var(--primary-dark);
+}
+
+.chat-form button:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.chat-disclaimer {
+    padding: 0 22px 18px;
+    text-align: center;
+    font-size: 10px;
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* 9. FOOTER */
+
+.footer {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 23px 3px 5px;
+}
+
+.footer p {
+    font-size: 11px;
+}
+
+/* 10. TABLET */
+
+@media (max-width: 1100px) {
+    .sidebar {
+        width: 215px;
+        min-width: 215px;
+        padding: 23px 14px;
+    }
+
+    .main-content {
+        padding: 25px 22px;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* 11. HP */
+
+@media (max-width: 700px) {
+    .app-container {
+        flex-direction: column;
+    }
+
+    .sidebar {
+        width: 100%;
+        min-width: 0;
+        min-height: auto;
+        padding: 14px 16px;
+        gap: 14px;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .brand-icon {
+        width: 37px;
+        height: 37px;
+        font-size: 20px;
+    }
+
+    .brand h2 {
+        font-size: 17px;
+    }
+
+    .new-chat-btn {
+        padding: 10px;
+    }
+
+    .sidebar-nav {
+        flex-direction: row;
+        gap: 6px;
+        overflow-x: auto;
+        padding-bottom: 2px;
+    }
+
+    .nav-item {
+        justify-content: center;
+        flex-shrink: 0;
+        padding: 9px 11px;
+        font-size: 11px;
+        gap: 6px;
+    }
+
+    .nav-item span {
+        font-size: 14px;
+    }
+
+    .sidebar-bottom {
+        display: none;
+    }
+
+    .main-content {
+        width: 100%;
+        padding: 22px 14px;
+    }
+
+    .topbar {
+        align-items: flex-start;
+        margin-bottom: 23px;
+    }
+
+    .topbar h1 {
+        font-size: 21px;
+    }
+
+    .topbar p {
+        max-width: 230px;
+        font-size: 11px;
+    }
+
+    .model-badge {
+        padding: 8px 10px;
+        font-size: 10px;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .stat-card {
+        padding: 15px;
+        border-radius: 13px;
+    }
+
+    .stat-card h3 {
+        font-size: 24px;
+        margin-top: 12px;
+    }
+
+    .stat-heading {
+        font-size: 10px;
+    }
+
+    .stat-heading span:last-child {
+        font-size: 15px;
+    }
+
+    .stat-card p {
+        font-size: 10px;
+    }
+
+    .limit-card,
+    .chart-card {
+        padding: 17px;
+    }
+
+    .section-heading {
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .section-heading h2 {
+        font-size: 15px;
+    }
+
+    .section-heading p {
+        font-size: 11px;
+    }
+
+    .limit-badge {
+        font-size: 9px;
+        padding: 5px 8px;
+    }
+
+    .chart-container {
+        height: 240px;
+    }
+
+    .chat-header {
+        padding: 17px;
+    }
+
+    .chat-header h2 {
+        font-size: 15px;
+    }
+
+    .chat-messages {
+        padding: 18px 14px;
+        min-height: 260px;
+        max-height: 430px;
+    }
+
+    .message-content {
+        max-width: 90%;
+    }
+
+    .chat-form {
+        gap: 8px;
+        padding: 13px;
+    }
+
+    .chat-form textarea {
+        padding: 11px;
+        font-size: 12px;
+    }
+
+    .chat-form button {
+        padding: 0 14px;
+        font-size: 12px;
+    }
+
+    .chat-disclaimer {
+        padding: 0 13px 15px;
+        font-size: 9px;
+    }
+
+    .footer {
+        flex-direction: column;
+        padding-top: 18px;
+    }
+}
+
+/* 12. HP KECIL */
+
+@media (max-width: 380px) {
+    .main-content {
+        padding: 17px 10px;
+    }
+
+    .topbar {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .stats-grid {
+        gap: 8px;
+    }
+
+    .stat-card {
+        padding: 12px;
+    }
+
+    .stat-card h3 {
+        font-size: 21px;
+    }
+
+    .nav-item {
+        font-size: 10px;
+        padding: 8px;
+    }
+
+    .limit-info,
+    .limit-details {
+        font-size: 10px;
+    }
+}
+
+/* 13. PENGATURAN AKSESIBILITAS */
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+    }
+}

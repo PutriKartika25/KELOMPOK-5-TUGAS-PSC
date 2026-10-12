@@ -1,0 +1,267 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Dashboard chatbot Groq API dengan Prompt Engineering">
+    <title>GroqChat - AI Assistant Dashboard</title>
+
+    <!-- CSS frontend -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Library grafik Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <div class="app-container">
+
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-icon">G</div>
+                <div>
+                    <h2>GroqChat</h2>
+                    <small>AI Assistant</small>
+                </div>
+            </div>
+
+            <button type="button" class="new-chat-btn" id="newChatBtn">
+                + Chat Baru
+            </button>
+
+            <nav class="sidebar-nav" aria-label="Navigasi utama">
+                <a href="#chat-section" class="nav-item active">
+                    <span aria-hidden="true">💬</span>
+                    Chatbot
+                </a>
+
+                <a href="#dashboard-section" class="nav-item">
+                    <span aria-hidden="true">📊</span>
+                    Dashboard
+                </a>
+
+                <a href="#limit-section" class="nav-item">
+                    <span aria-hidden="true">⚡</span>
+                    Limit Penggunaan
+                </a>
+            </nav>
+
+            <div class="sidebar-bottom">
+                <div class="connection-status">
+                    <span class="status-dot" aria-hidden="true"></span>
+                    <span id="connectionStatus">Memeriksa backend</span>
+                </div>
+                <small>Proyek Prompt Engineering</small>
+            </div>
+        </aside>
+
+        <!-- KONTEN UTAMA -->
+        <main class="main-content">
+
+            <!-- HEADER -->
+            <header class="topbar">
+                <div>
+                    <h1>Chatbot Dashboard</h1>
+                    <p>Berinteraksi dengan AI dan pantau penggunaan token.</p>
+                </div>
+
+                <div class="model-badge">
+                    <span class="status-dot" aria-hidden="true"></span>
+                    <span id="modelName">Groq API</span>
+                </div>
+            </header>
+
+            <!-- DASHBOARD TOKEN -->
+            <section id="dashboard-section" class="dashboard-section">
+                <h2>Ringkasan Penggunaan</h2>
+
+                <div class="stats-grid">
+
+                    <article class="stat-card">
+                        <div class="stat-heading">
+                            <span>Total Token</span>
+                            <span aria-hidden="true">📈</span>
+                        </div>
+                        <h3 id="totalTokens">0</h3>
+                        <p>Input + output token</p>
+                    </article>
+
+                    <article class="stat-card">
+                        <div class="stat-heading">
+                            <span>Input Token</span>
+                            <span aria-hidden="true">📥</span>
+                        </div>
+                        <h3 id="inputTokens">0</h3>
+                        <p>Token dari permintaan</p>
+                    </article>
+
+                    <article class="stat-card">
+                        <div class="stat-heading">
+                            <span>Output Token</span>
+                            <span aria-hidden="true">📤</span>
+                        </div>
+                        <h3 id="outputTokens">0</h3>
+                        <p>Token dari jawaban AI</p>
+                    </article>
+
+                    <article class="stat-card">
+                        <div class="stat-heading">
+                            <span>Total Permintaan</span>
+                            <span aria-hidden="true">🔄</span>
+                        </div>
+                        <h3 id="totalRequests">0</h3>
+                        <p>Jumlah permintaan chat</p>
+                    </article>
+
+                </div>
+            </section>
+
+            <!-- LIMIT PENGGUNAAN -->
+            <section id="limit-section" class="limit-card">
+                <div class="section-heading">
+                    <div>
+                        <h2>Limit Penggunaan</h2>
+                        <p>Pantau penggunaan token chatbot.</p>
+                    </div>
+
+                    <span class="limit-badge" id="limitStatus">
+                        Belum tersedia
+                    </span>
+                </div>
+
+                <div class="limit-info">
+                    <span>Token terpakai</span>
+                    <strong id="tokenUsageText">0 / — token</strong>
+                </div>
+
+                <div
+                    class="progress-track"
+                    id="tokenProgressTrack"
+                    role="progressbar"
+                    aria-label="Persentase penggunaan token"
+                    aria-valuemin="0"
+                    aria-valuemax="100"
+                    aria-valuenow="0"
+                >
+                    <div class="progress-fill" id="tokenProgress"></div>
+                </div>
+
+                <div class="limit-details">
+                    <span id="usagePercentage">Limit belum diketahui</span>
+                    <span id="remainingTokens">Menunggu data backend</span>
+                </div>
+
+                <p class="limit-note">
+                    Informasi limit akan ditampilkan berdasarkan data yang
+                    disediakan backend. Limit proyek dan rate limit akun
+                    Groq merupakan dua hal yang berbeda.
+                </p>
+            </section>
+
+            <!-- GRAFIK PENGGUNAAN TOKEN -->
+            <section class="chart-card">
+                <div class="section-heading">
+                    <div>
+                        <h2>Grafik Penggunaan Token</h2>
+                        <p>Perbandingan input token dan output token.</p>
+                    </div>
+
+                    <span class="chart-label">Token</span>
+                </div>
+
+                <div class="chart-container">
+                    <canvas
+                        id="tokenChart"
+                        role="img"
+                        aria-label="Grafik perbandingan input dan output token"
+                    ></canvas>
+                </div>
+
+                <p id="chartMessage" class="chart-message">
+                    Grafik akan diperbarui setelah data penggunaan token
+                    tersedia.
+                </p>
+            </section>
+
+            <!-- AREA CHATBOT -->
+            <section id="chat-section" class="chat-card">
+                <div class="chat-header">
+                    <div>
+                        <h2>Chat dengan AI</h2>
+                        <p>Tanyakan sesuatu kepada asisten AI.</p>
+                    </div>
+
+                    <button
+                        type="button"
+                        id="clearChatBtn"
+                        class="secondary-btn"
+                    >
+                        Hapus Chat
+                    </button>
+                </div>
+
+                <!-- Pesan chatbot -->
+                <div
+                    id="chatMessages"
+                    class="chat-messages"
+                    role="log"
+                    aria-live="polite"
+                    aria-label="Riwayat percakapan chatbot"
+                >
+                    <div class="message assistant-message">
+                        <div class="message-avatar" aria-hidden="true">
+                            AI
+                        </div>
+
+                        <div class="message-content">
+                            <strong>GroqChat</strong>
+                            <p>
+                                Halo! Saya asisten AI. Silakan tuliskan
+                                pertanyaanmu di kolom pesan untuk memulai
+                                percakapan.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Form pengiriman pesan -->
+                <form id="chatForm" class="chat-form">
+                    <label for="userInput" class="sr-only">
+                        Tulis pesan untuk AI
+                    </label>
+
+                    <textarea
+                        id="userInput"
+                        name="message"
+                        placeholder="Ketik pesanmu di sini..."
+                        rows="2"
+                        maxlength="10000"
+                        required
+                    ></textarea>
+
+                    <button type="submit" id="sendBtn">
+                        Kirim ↑
+                    </button>
+                </form>
+
+                <p class="chat-disclaimer">
+                    Jawaban AI dapat mengandung kesalahan. Periksa kembali
+                    informasi penting sebelum menggunakannya.
+                </p>
+            </section>
+
+            <!-- FOOTER -->
+            <footer class="footer">
+                <p>GroqChat · Chatbot Prompt Engineering</p>
+                <p>Frontend &amp; Dashboard</p>
+            </footer>
+
+        </main>
+    </div>
+
+    <!-- JavaScript frontend -->
+    <script src="script.js"></script>
+</body>
+</html>
