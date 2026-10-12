@@ -1,4 +1,3 @@
-
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
@@ -11,7 +10,8 @@ dotenv.config({ path: path.join(__dirname, ".env") });
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 const TOKEN_LIMIT = Number(process.env.TOKEN_LIMIT) || 10000;
-const MODEL = process.env.GROQ_MODEL || "openai/gpt-oss-20b";
+// Menggunakan model Groq yang aktif dan resmi
+const MODEL = process.env.GROQ_MODEL || "llama-3.1-8b-instant";
 
 if (!process.env.GROQ_API_KEY) {
   console.error("GROQ_API_KEY belum diisi di backend/.env");
@@ -19,7 +19,7 @@ if (!process.env.GROQ_API_KEY) {
 }
 
 const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY
+  apiKey: process.env.process.env?.GROQ_API_KEY || process.env.GROQ_API_KEY
 });
 
 app.use(cors());
@@ -122,8 +122,11 @@ app.post("/api/chat", async (req, res) => {
 
     tokenHistory.push(record);
 
+    // Mengirim format lengkap agar kompatibel dengan berbagai jenis frontend
     return res.json({
       answer,
+      reply: answer,
+      response: answer,
       usage: {
         inputTokens,
         outputTokens,
@@ -132,7 +135,6 @@ app.post("/api/chat", async (req, res) => {
       limit: getUsage()
     });
   } catch (error) {
-    // Detail error dicatat di terminal, bukan dikirim ke pengguna
     console.error("=== GROQ API ERROR ===");
     console.error("Status:", error.status || "Tidak tersedia");
     console.error("Pesan:", error.message || "Kesalahan tidak diketahui");
