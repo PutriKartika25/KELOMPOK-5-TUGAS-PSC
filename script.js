@@ -1,4 +1,3 @@
-
 /* =========================================
    GROQCHAT - FRONTEND & DASHBOARD
    File: script.js
@@ -16,21 +15,17 @@
 // 1. KONFIGURASI
 // ==========================================
 
-// Jika frontend dan backend berjalan pada server yang sama,
-// gunakan URL relatif ini.
-// Jika backend berbeda server, ubah menjadi URL backend milik kelompok.
-const API_BASE_URL = "";
+const API_BASE_URL = "http://localhost:3003";
 
 const CHAT_ENDPOINT = `${API_BASE_URL}/api/chat`;
 const USAGE_ENDPOINT = `${API_BASE_URL}/api/usage`;
+const CHAT_HISTORY_STORAGE_KEY = "groqchat-history-v1";
 
-// Batas tampilan sementara untuk demo.
-// Ganti dengan limit resmi dari backend.
-// Nilai null berarti limit belum diketahui.
 const DEMO_TOKEN_LIMIT = null;
 
-// Riwayat percakapan untuk sesi browser saat ini.
 let conversation = [];
+let chatHistories = [];
+let activeChatId = null;
 let chartInstance = null;
 let isSending = false;
 
@@ -54,6 +49,9 @@ const elements = {
     chatMessages: document.getElementById("chatMessages"),
     clearChatBtn: document.getElementById("clearChatBtn"),
     newChatBtn: document.getElementById("newChatBtn"),
+    chatHistoryList: document.getElementById("chatHistoryList"),
+    chatHistoryEmpty: document.getElementById("chatHistoryEmpty"),
+    chatHistoryStatus: document.getElementById("chatHistoryStatus"),
 
     totalTokens: document.getElementById("totalTokens"),
     inputTokens: document.getElementById("inputTokens"),
@@ -112,9 +110,6 @@ function scrollChatToBottom() {
 // 4. MENAMPILKAN PESAN CHAT
 // ==========================================
 
-// Gunakan textContent, bukan innerHTML, untuk menampilkan
-// pesan pengguna dan jawaban AI sebagai teks yang aman.
-
 function addMessage(role, text, options = {}) {
     const isUser = role === "user";
     const isLoading = options.loading === true;
@@ -164,23 +159,162 @@ function clearMessagesFromScreen() {
     elements.chatMessages.replaceChildren();
 }
 
+function loadChatHistories() {
+    try {
+        const savedHistories = JSON.parse(
+            localStorage.getItem(CHAT_HISTORY_STORAGE_KEY) || "[]"
+        );
+
+        if (!Array.isArray(savedHistories)) {
+            throw new Error("Format data riwayat chat tidak valid.");
+        }
+
+        return savedHistories.filter(chat =>
+            chat &&
+            typeof chat.id === "string" &&
+            typeof chat.title === "string" &&
+            Array.isArray(chat.messages)
+        ).map(chat => ({
+            ...chat,
+            messages: chat.messages.filter(message =>
+                message &&
+                ["user", "assistant"].includes(message.role) &&
+                typeof message.content === "string"
+            )
+        }));
+    } catch (error) {
+        showChatHistoryError("Riwayat chat tidak dapat dimuat.");
+        console.error("Gagal memuat riwayat chat:", error);
+        return [];
+    }
+}
+
+function showChatHistoryError(message) {
+    elements.chatHistoryStatus.textContent = message;
+    elements.chatHistoryStatus.hidden = false;
+}
+
+function saveChatHistories() {
+    renderChatHistory();
+    try {
+        localStorage.setItem(
+            CHAT_HISTORY_STORAGE_KEY,
+            JSON.stringify(chatHistories)
+        );
+        elements.chatHistoryStatus.textContent = "";
+        elements.chatHistoryStatus.hidden = true;
+    } catch (error) {
+        showChatHistoryError("Riwayat chat gagal disimpan di browser.");
+        console.error("Gagal menyimpan riwayat chat:", error);
+    }
+}
+
+function createChatId() {
+    return typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function getChatTitle(message) {
+    const title = message.trim();
+    return title.length > 36 ? `${title.slice(0, 36)}...` : title;
+}
+
+function renderChatHistory() {
+    elements.chatHistoryList.replaceChildren();
+    elements.chatHistoryEmpty.hidden = chatHistories.length > 0;
+
+    chatHistories.forEach(chat => {
+        const item = document.createElement("div");
+        item.className = "chat-history-item";
+
+        const openButton = document.createElement("button");
+        openButton.type = "button";
+        openButton.className = "chat-history-open";
+        openButton.classList.toggle("active", chat.id === activeChatId);
+        openButton.textContent = chat.title;
+        openButton.title = chat.title;
+        openButton.addEventListener("click", () => openChat(chat.id));
+
+        const deleteButton = document.createElement("button");
+        deleteButton.type = "button";
+        deleteButton.className = "chat-history-delete";
+        deleteButton.textContent = "×";
+        deleteButton.setAttribute("aria-label", `Hapus riwayat ${chat.title}`);
+        deleteButton.addEventListener("click", () => deleteChat(chat.id));
+
+        item.append(openButton, deleteButton);
+        elements.chatHistoryList.appendChild(item);
+    });
+}
+
+function ensureActiveChat(firstMessage) {
+    let chat = chatHistories.find(item => item.id === activeChatId);
+
+    if (!chat) {
+        chat = {
+            id: createChatId(),
+            title: getChatTitle(firstMessage),
+            updatedAt: new Date().toISOString(),
+            messages: []
+        };
+        chatHistories.unshift(chat);
+        activeChatId = chat.id;
+    }
+
+    return chat;
+}
+
+function moveChatToFront(chat) {
+    chat.updatedAt = new Date().toISOString();
+    chatHistories = [
+        chat,
+        ...chatHistories.filter(item => item.id !== chat.id)
+    ];
+}
+
+function openChat(chatId) {
+    if (isSending) return;
+
+    const chat = chatHistories.find(item => item.id === chatId);
+    if (!chat) return;
+
+    activeChatId = chat.id;
+    conversation = chat.messages.map(message => ({ ...message }));
+    clearMessagesFromScreen();
+    chat.messages.forEach(message => addMessage(message.role, message.content));
+    elements.userInput.value = "";
+    renderChatHistory();
+}
+
+function deleteChat(chatId) {
+    if (isSending) return;
+
+    chatHistories = chatHistories.filter(chat => chat.id !== chatId);
+    if (activeChatId === chatId) {
+        activeChatId = null;
+        conversation = [];
+        clearMessagesFromScreen();
+        addMessage(
+            "assistant",
+            "Halo! Saya asisten AI. Silakan tuliskan pertanyaanmu di kolom pesan untuk memulai percakapan."
+        );
+    }
+    saveChatHistories();
+}
+
 // ==========================================
 // 5. MEMPERBARUI ANGKA DASHBOARD
 // ==========================================
 
 function updateDashboard() {
-    const total =
-        usage.inputTokens + usage.outputTokens;
-
+    const total = usage.inputTokens + usage.outputTokens;
     usage.totalTokens = total;
 
     elements.totalTokens.textContent = formatNumber(total);
-    elements.inputTokens.textContent =
-        formatNumber(usage.inputTokens);
-    elements.outputTokens.textContent =
-        formatNumber(usage.outputTokens);
-    elements.totalRequests.textContent =
-        formatNumber(usage.totalRequests);
+    elements.inputTokens.textContent = formatNumber(usage.inputTokens);
+    elements.outputTokens.textContent = formatNumber(usage.outputTokens);
+    elements.totalRequests.textContent = formatNumber(usage.totalRequests);
 
     updateLimitDisplay();
     updateChart();
@@ -195,61 +329,30 @@ function updateLimitDisplay() {
     const total = usage.totalTokens;
 
     if (limit === null || limit <= 0) {
-        elements.tokenUsageText.textContent =
-            `${formatNumber(total)} / — token`;
-
+        elements.tokenUsageText.textContent = `${formatNumber(total)} / — token`;
         elements.tokenProgress.style.width = "0%";
-        elements.tokenProgressTrack.setAttribute(
-            "aria-valuenow", "0"
-        );
-
-        elements.usagePercentage.textContent =
-            "Limit belum diketahui";
-        elements.remainingTokens.textContent =
-            "Menunggu data backend";
-        elements.limitStatus.textContent =
-            "Belum tersedia";
-
+        elements.tokenProgressTrack.setAttribute("aria-valuenow", "0");
+        elements.usagePercentage.textContent = "Limit belum diketahui";
+        elements.remainingTokens.textContent = "Menunggu data backend";
+        elements.limitStatus.textContent = "Belum tersedia";
         return;
     }
 
-    const percentage = Math.min(
-        100,
-        Math.round((total / limit) * 100)
-    );
-
+    const percentage = Math.min(100, Math.round((total / limit) * 100));
     const remaining = Math.max(0, limit - total);
 
-    elements.tokenUsageText.textContent =
-        `${formatNumber(total)} / ${formatNumber(limit)} token`;
-
+    elements.tokenUsageText.textContent = `${formatNumber(total)} / ${formatNumber(limit)} token`;
     elements.tokenProgress.style.width = `${percentage}%`;
-    elements.tokenProgressTrack.setAttribute(
-        "aria-valuenow", String(percentage)
-    );
-
-    elements.usagePercentage.textContent =
-        `${percentage}% terpakai`;
-
-    elements.remainingTokens.textContent =
-        `${formatNumber(remaining)} token tersisa`;
+    elements.tokenProgressTrack.setAttribute("aria-valuenow", String(percentage));
+    elements.usagePercentage.textContent = `${percentage}% terpakai`;
+    elements.remainingTokens.textContent = `${formatNumber(remaining)} token tersisa`;
 
     if (percentage >= 100) {
         elements.limitStatus.textContent = "Limit tercapai";
-        elements.limitStatus.style.background = "#ffe9e9";
-        elements.limitStatus.style.color = "#c92a2a";
-        elements.tokenProgress.style.background = "#e5484d";
     } else if (percentage >= 80) {
         elements.limitStatus.textContent = "Hampir mencapai limit";
-        elements.limitStatus.style.background = "#fff5df";
-        elements.limitStatus.style.color = "#986414";
-        elements.tokenProgress.style.background = "#e9a23b";
     } else {
         elements.limitStatus.textContent = "Dalam batas limit";
-        elements.limitStatus.style.background = "#e5f8ee";
-        elements.limitStatus.style.color = "#137a4c";
-        elements.tokenProgress.style.background =
-            "linear-gradient(90deg, #817aff, #5548eb)";
     }
 }
 
@@ -260,8 +363,7 @@ function updateLimitDisplay() {
 function initializeChart() {
     if (!elements.tokenChart || typeof Chart === "undefined") {
         if (elements.chartMessage) {
-            elements.chartMessage.textContent =
-                "Library grafik belum tersedia. Periksa koneksi internet.";
+            elements.chartMessage.textContent = "Library grafik belum tersedia.";
         }
         return;
     }
@@ -270,64 +372,18 @@ function initializeChart() {
 
     chartInstance = new Chart(context, {
         type: "bar",
-
         data: {
             labels: ["Input Token", "Output Token"],
-
             datasets: [{
                 label: "Penggunaan Token",
                 data: [0, 0],
                 backgroundColor: ["#635bff", "#21b981"],
-                borderRadius: 8,
-                borderSkipped: false,
-                maxBarThickness: 75
+                borderRadius: 8
             }]
         },
-
         options: {
             responsive: true,
-            maintainAspectRatio: false,
-
-            interaction: {
-                intersect: false,
-                mode: "index"
-            },
-
-            plugins: {
-                legend: {
-                    display: false
-                },
-
-                tooltip: {
-                    callbacks: {
-                        label(context) {
-                            return ` ${formatNumber(context.raw)} token`;
-                        }
-                    }
-                }
-            },
-
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        precision: 0
-                    },
-                    title: {
-                        display: true,
-                        text: "Jumlah Token"
-                    },
-                    grid: {
-                        color: "#edf0f6"
-                    }
-                },
-
-                x: {
-                    grid: {
-                        display: false
-                    }
-                }
-            }
+            maintainAspectRatio: false
         }
     });
 }
@@ -339,13 +395,7 @@ function updateChart() {
         usage.inputTokens,
         usage.outputTokens
     ];
-
     chartInstance.update();
-
-    if (elements.chartMessage) {
-        elements.chartMessage.textContent =
-            "Grafik menunjukkan akumulasi input dan output token yang tercatat.";
-    }
 }
 
 // ==========================================
@@ -367,60 +417,57 @@ async function sendMessage(message) {
         role: "user",
         content: cleanMessage
     });
+    const activeChat = ensureActiveChat(cleanMessage);
+    activeChat.messages.push({ role: "user", content: cleanMessage });
+    moveChatToFront(activeChat);
+    saveChatHistories();
 
-    const loadingMessage = addMessage(
-        "assistant",
-        "",
-        { loading: true }
-    );
+    const loadingMessage = addMessage("assistant", "", { loading: true });
 
     setConnectionStatus("Menghubungi backend...");
 
     try {
         const response = await fetch(CHAT_ENDPOINT, {
             method: "POST",
-
             headers: {
                 "Content-Type": "application/json"
             },
-
-            // Riwayat dikirim agar AI dapat memahami konteks.
-            // Backend harus memvalidasi isi dan panjang riwayat.
             body: JSON.stringify({
                 message: cleanMessage,
                 messages: conversation
             })
         });
 
-        const data = await response.json().catch(() => ({}));
+        const responseText = await response.text();
+        let data;
 
-        if (!response.ok) {
+        try {
+            data = responseText ? JSON.parse(responseText) : {};
+        } catch {
+            if (!response.ok) {
+                throw new Error(`Permintaan gagal (HTTP ${response.status})`);
+            }
+
             throw new Error(
-                data.error || data.message ||
-                `Permintaan gagal (HTTP ${response.status})`
+                "Backend tidak mengirim JSON. Pastikan server Node.js berjalan di http://localhost:3003."
             );
         }
 
-        // Kontrak respons backend yang diharapkan:
-        // {
-        //   "reply": "Jawaban AI",
-        //   "usage": {
-        //     "prompt_tokens": 20,
-        //     "completion_tokens": 50,
-        //     "total_tokens": 70
-        //   },
-        //   "model": "nama-model"
-        // }
+        console.log("DATA DARI BACKEND:", data);
 
-        const reply =
-            data.reply ??
-            data.answer ??
-            data.content ??
-            data.choices?.[0]?.message?.content;
+        if (!response.ok) {
+            const message = data.detail
+                ? `${data.error || "Permintaan gagal"} ${data.detail}`
+                : data.error || `Permintaan gagal (HTTP ${response.status})`;
+            throw new Error(message);
+        }
 
-        if (typeof reply !== "string" || !reply.trim()) {
+        const reply = [data.reply, data.answer, data.content, data.message]
+            .find(value => typeof value === "string" && value.trim());
+
+        if (!reply) {
             throw new Error(
-                "Jawaban tidak ditemukan. Periksa format respons backend."
+                "Backend tidak mengirim teks jawaban. Periksa log server Node.js."
             );
         }
 
@@ -430,64 +477,31 @@ async function sendMessage(message) {
             role: "assistant",
             content: reply
         });
+        activeChat.messages.push({ role: "assistant", content: reply });
+        moveChatToFront(activeChat);
+        saveChatHistories();
 
-        // Mengambil penggunaan token dari respons backend.
-        // Jangan menebak penggunaan token dari jumlah karakter.
         const tokenData = data.usage || {};
-
-        const input = getNumber(
-            tokenData.prompt_tokens ??
-            tokenData.input_tokens ??
-            tokenData.promptTokens
-        );
-
-        const output = getNumber(
-            tokenData.completion_tokens ??
-            tokenData.output_tokens ??
-            tokenData.completionTokens
-        );
-
-        const total = getNumber(
-            tokenData.total_tokens ??
-            tokenData.totalTokens,
-            input + output
-        );
+        const input = getNumber(tokenData.prompt_tokens ?? tokenData.input_tokens);
+        const output = getNumber(tokenData.completion_tokens ?? tokenData.output_tokens);
+        const total = getNumber(tokenData.total_tokens, input + output);
 
         usage.inputTokens += input;
         usage.outputTokens += output;
-        usage.totalTokens =
-            usage.inputTokens + usage.outputTokens;
+        usage.totalTokens = usage.inputTokens + usage.outputTokens;
         usage.totalRequests += 1;
-
-        // Catat penggunaan untuk grafik tren per permintaan.
-        usage.history.push({
-            request: usage.totalRequests,
-            input,
-            output,
-            total
-        });
 
         if (data.model && elements.modelName) {
             elements.modelName.textContent = data.model;
         }
 
         setConnectionStatus("Backend terhubung", true);
-
         updateDashboard();
 
-        // Ambil limit dan penggunaan otoritatif dari backend,
-        // jika endpoint tersebut disediakan.
-        await refreshUsage();
-
     } catch (error) {
-        loadingMessage.setText(
-            `Maaf, pesan gagal diproses.\n${error.message}\n\n` +
-            "Pastikan backend berjalan dan endpoint /api/chat benar."
-        );
-
+        loadingMessage.setText(`Maaf, pesan gagal diproses.\n${error.message}`);
         setConnectionStatus("Koneksi bermasalah");
         console.error("Kesalahan chatbot:", error);
-
     } finally {
         isSending = false;
         elements.sendBtn.disabled = false;
@@ -505,147 +519,74 @@ async function refreshUsage() {
     try {
         const response = await fetch(USAGE_ENDPOINT, {
             method: "GET",
-            headers: {
-                "Accept": "application/json"
-            }
+            headers: { "Accept": "application/json" }
         });
 
         if (!response.ok) return;
 
         const data = await response.json();
 
-        // Contoh respons:
-        // {
-        //   "inputTokens": 100,
-        //   "outputTokens": 200,
-        //   "totalTokens": 300,
-        //   "totalRequests": 5,
-        //   "tokenLimit": 10000
-        // }
-
-        const input = data.inputTokens ?? data.input_tokens;
-        const output = data.outputTokens ?? data.output_tokens;
-        const total = data.totalTokens ?? data.total_tokens;
-        const requests = data.totalRequests ?? data.total_requests;
-        const limit = data.tokenLimit ?? data.token_limit;
-
-        if (input !== undefined) {
-            usage.inputTokens = getNumber(input);
-        }
-
-        if (output !== undefined) {
-            usage.outputTokens = getNumber(output);
-        }
-
-        if (total !== undefined) {
-            usage.totalTokens = getNumber(total);
-        } else {
-            usage.totalTokens =
-                usage.inputTokens + usage.outputTokens;
-        }
-
-        if (requests !== undefined) {
-            usage.totalRequests = getNumber(requests);
-        }
-
-        if (limit !== undefined && limit !== null) {
-            usage.tokenLimit = getNumber(limit);
-        }
-
-        if (data.model && elements.modelName) {
-            elements.modelName.textContent = data.model;
-        }
+        if (data.inputTokens !== undefined) usage.inputTokens = getNumber(data.inputTokens);
+        if (data.outputTokens !== undefined) usage.outputTokens = getNumber(data.outputTokens);
+        if (data.totalTokens !== undefined) usage.totalTokens = getNumber(data.totalTokens);
+        if (data.totalRequests !== undefined) usage.totalRequests = getNumber(data.totalRequests);
+        if (data.tokenLimit !== null && data.tokenLimit !== undefined) usage.tokenLimit = getNumber(data.tokenLimit);
 
         updateDashboard();
-
     } catch (error) {
-        // Endpoint usage boleh belum tersedia saat frontend
-        // sedang dikerjakan. Chat tetap bisa berjalan jika
-        // endpoint chat tersedia.
-        console.info(
-            "Data limit belum tersedia dari backend:",
-            error.message
-        );
+        console.info("Data limit belum tersedia dari backend:", error.message);
     }
 }
 
 // ==========================================
-// 10. EVENT FORM CHAT
+// 10. EVENT FORM CHAT & INISIALISASI
 // ==========================================
 
 elements.chatForm.addEventListener("submit", async (event) => {
     event.preventDefault();
-
     const message = elements.userInput.value.trim();
-
     if (!message || isSending) return;
-
     elements.userInput.value = "";
-
     await sendMessage(message);
 });
 
-// Enter untuk mengirim, Shift + Enter untuk baris baru.
 elements.userInput.addEventListener("keydown", (event) => {
-    if (
-        event.key === "Enter" &&
-        !event.shiftKey &&
-        !event.isComposing
-    ) {
+    if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
         event.preventDefault();
         elements.chatForm.requestSubmit();
     }
 });
 
-// ==========================================
-// 11. CHAT BARU DAN HAPUS CHAT
-// ==========================================
-
 function startNewChat() {
     if (isSending) return;
-
+    activeChatId = null;
     conversation = [];
     clearMessagesFromScreen();
-
-    addMessage(
-        "assistant",
-        "Halo! Percakapan baru dimulai. Apa yang ingin kamu tanyakan?"
-    );
-
+    addMessage("assistant", "Halo! Percakapan baru dimulai. Apa yang ingin kamu tanyakan?");
     elements.userInput.value = "";
+    renderChatHistory();
     elements.userInput.focus();
 }
 
+function clearCurrentChat() {
+    if (isSending) return;
+    if (activeChatId) {
+        deleteChat(activeChatId);
+        return;
+    }
+    startNewChat();
+}
+
 elements.newChatBtn?.addEventListener("click", startNewChat);
-elements.clearChatBtn?.addEventListener("click", startNewChat);
-
-// ==========================================
-// 12. NAVIGASI SIDEBAR
-// ==========================================
-
-document.querySelectorAll(".nav-item").forEach((item) => {
-    item.addEventListener("click", () => {
-        document.querySelectorAll(".nav-item").forEach((nav) => {
-            nav.classList.remove("active");
-        });
-
-        item.classList.add("active");
-    });
-});
-
-// ==========================================
-// 13. INISIALISASI APLIKASI
-// ==========================================
+elements.clearChatBtn?.addEventListener("click", clearCurrentChat);
 
 function initializeApp() {
+    chatHistories = loadChatHistories();
+    renderChatHistory();
     initializeChart();
     updateDashboard();
-
     setConnectionStatus("Memeriksa backend");
-
-    // Memeriksa data limit dari backend.
     refreshUsage();
-
     console.info("GroqChat frontend berhasil dimuat.");
 }
 
