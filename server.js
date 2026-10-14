@@ -1,164 +1,94 @@
-const express = require("express");
-const cors = require("cors");
-const dotenv = require("dotenv");
-const Groq = require("groq-sdk");
-const path = require("path");
+import express from 'express';
+import dotenv from 'dotenv';
+import Groq from 'groq-sdk';
+import cors from 'cors';
 
-// Memuat backend/.env secara eksplisit
-dotenv.config({ path: path.join(__dirname, ".env") });
+dotenv.config();
 
 const app = express();
-const PORT = Number(process.env.PORT) || 3000;
-const TOKEN_LIMIT = Number(process.env.TOKEN_LIMIT) || 10000;
-// Menggunakan model Groq yang aktif dan resmi
-const MODEL = process.env.GROQ_MODEL || "llama-3.1-8b-instant";
+const port = Number(process.env.PORT) || 3001;
+const model = process.env.GROQ_MODEL || 'openai/gpt-oss-20b';
+const tokenLimit = Number(process.env.TOKEN_LIMIT) || 10000;
+
+app.use(cors());
+app.use(express.json());
 
 if (!process.env.GROQ_API_KEY) {
-  console.error("GROQ_API_KEY belum diisi di backend/.env");
+  console.error('GROQ_API_KEY belum diisi di file .env.');
   process.exit(1);
 }
 
 const groq = new Groq({
-  apiKey: process.env.process.env?.GROQ_API_KEY || process.env.GROQ_API_KEY
+  apiKey: process.env.GROQ_API_KEY
 });
 
-app.use(cors());
-app.use(express.json({ limit: "20kb" }));
+let globalUsage = {
+  inputTokens: 0,
+  outputTokens: 0,
+  totalTokens: 0,
+  totalRequests: 0,
+  tokenLimit,
+  model
+};
 
-// Menampilkan frontend jika file tersedia
-app.use(express.static(path.join(__dirname, "../frontend")));
-
-let usedTokens = 0;
-const tokenHistory = [];
-
-const SYSTEM_PROMPT = `
-Kamu adalah asisten AI untuk membantu pengguna belajar.
-Jawab dalam bahasa Indonesia yang jelas, sopan, dan terstruktur.
-Jika menjelaskan prosedur, gunakan langkah bernomor.
-Jangan mengarang fakta atau sumber.
-Jika tidak mengetahui jawaban, katakan dengan jujur.
-`;
-
-function getUsage() {
-  return {
-    maxTokens: TOKEN_LIMIT,
-    usedTokens,
-    remainingTokens: Math.max(0, TOKEN_LIMIT - usedTokens),
-    usagePercent: Math.min(100, (usedTokens / TOKEN_LIMIT) * 100),
-    history: tokenHistory
-  };
-}
-
-// Memeriksa backend
-app.get("/api/health", (req, res) => {
-  res.json({
-    status: "ok",
-    message: "Backend chatbot aktif",
-    model: MODEL
-  });
-});
-
-// Statistik token untuk dashboard
-app.get("/api/usage", (req, res) => {
-  res.json(getUsage());
-});
-
-// Mengirim pertanyaan ke Groq
-app.post("/api/chat", async (req, res) => {
-  const question =
-    typeof req.body?.message === "string"
-      ? req.body.message.trim()
-      : "";
-
-  if (!question) {
-    return res.status(400).json({
-      error: "Pertanyaan tidak boleh kosong."
-    });
-  }
-
-  if (question.length > 10000) {
-    return res.status(400).json({
-      error: "Pertanyaan maksimal 10.000 karakter."
-    });
-  }
-
-  if (usedTokens >= TOKEN_LIMIT) {
-    return res.status(429).json({
-      error: "Limit token aplikasi sudah tercapai.",
-      limit: getUsage()
-    });
-  }
+app.post('/api/chat', async (req, res) => {
+  console.log("-> Menerima permintaan POST di /api/chat dengan body:", req.body);
 
   try {
-    const completion = await groq.chat.completions.create({
-      model: MODEL,
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: question }
-      ],
-      max_completion_tokens: 2048,
-      temperature: 0.7
+    const message = typeof req.body?.message === 'string'
+      ? req.body.message.trim()
+      : '';
+
+    if (!message) {
+      return res.status(400).json({ error: "Pesan (message) tidak boleh kosong." });
+    }
+
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [{ role: 'user', content: message }],
+      model,
     });
 
-    const answer =
-      completion.choices?.[0]?.message?.content || "";
+    const replyText = chatCompletion.choices?.[0]?.message?.content;
 
-    const inputTokens = completion.usage?.prompt_tokens ?? 0;
-    const outputTokens = completion.usage?.completion_tokens ?? 0;
-    const totalTokens =
-      completion.usage?.total_tokens ??
-      inputTokens + outputTokens;
+    if (typeof replyText !== 'string' || !replyText.trim()) {
+      throw new Error("Groq API tidak mengembalikan teks jawaban.");
+    }
 
-    // Simpan penggunaan token dari respons Groq
-    usedTokens += totalTokens;
+    const usageData = chatCompletion.usage || {};
+    const promptTokens = usageData.prompt_tokens || 0;
+    const completionTokens = usageData.completion_tokens || 0;
+    const totalTokens = usageData.total_tokens || (promptTokens + completionTokens);
 
-    const record = {
-      time: new Date().toISOString(),
-      inputTokens,
-      outputTokens,
-      totalTokens,
-      usedTokens
-    };
+    globalUsage.inputTokens += promptTokens;
+    globalUsage.outputTokens += completionTokens;
+    globalUsage.totalTokens = globalUsage.inputTokens + globalUsage.outputTokens;
+    globalUsage.totalRequests += 1;
 
-    tokenHistory.push(record);
-
-    // Mengirim format lengkap agar kompatibel dengan berbagai jenis frontend
     return res.json({
-      answer,
-      reply: answer,
-      response: answer,
+      reply: replyText,
+      model,
       usage: {
-        inputTokens,
-        outputTokens,
-        totalTokens
-      },
-      limit: getUsage()
+        prompt_tokens: promptTokens,
+        completion_tokens: completionTokens,
+        total_tokens: totalTokens
+      }
     });
+
   } catch (error) {
-    console.error("=== GROQ API ERROR ===");
-    console.error("Status:", error.status || "Tidak tersedia");
-    console.error("Pesan:", error.message || "Kesalahan tidak diketahui");
-
-    if (error.status === 401) {
-      return res.status(502).json({
-        error: "Autentikasi Groq gagal. Periksa API Key di backend/.env."
-      });
-    }
-
-    if (error.status === 429) {
-      return res.status(502).json({
-        error: "Permintaan ke Groq dibatasi. Periksa rate limit atau kuota API."
-      });
-    }
-
+    console.error("=== DETAIL ERROR GROQ ===", error);
     return res.status(502).json({
-      error: "Groq gagal memproses permintaan. Periksa error di terminal backend."
+      error: "Groq gagal memproses permintaan.",
+      detail: error.message
     });
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Backend aktif: http://localhost:${PORT}`);
-  console.log(`Model: ${MODEL}`);
-  console.log(`API Key terbaca: ${Boolean(process.env.GROQ_API_KEY)}`);
+app.get('/api/usage', (req, res) => {
+  res.json(globalUsage);
+});
+
+app.listen(port, () => {
+  console.log(`Backend aktif: http://localhost:${port}`);
+  console.log(`Model: ${model}`);
+  console.log(`API Key terbaca: ${!!process.env.GROQ_API_KEY}`);
 });

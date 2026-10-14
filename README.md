@@ -36,23 +36,13 @@ Teknologi yang direncanakan atau digunakan dalam proyek ini meliputi:
 
 Fitur yang direncanakan dalam proyek ini meliputi:
 
-1. **Chatbot AI**  
-   Pengguna dapat memasukkan pertanyaan dan menerima jawaban dari AI.
-
-2. **Prompt Engineering**  
-   Menggunakan instruksi atau prompt untuk mengarahkan gaya dan kualitas respons chatbot.
-
-3. **Informasi Penggunaan Token**  
-   Menampilkan jumlah token input, token output, dan total token dari respons API jika data tersebut tersedia.
-
-4. **Batas Penggunaan Token**  
-   Memantau penggunaan token berdasarkan batas yang ditentukan pada aplikasi.
-
-5. **Dashboard dan Grafik**  
-   Menampilkan visualisasi data penggunaan token agar lebih mudah dipahami.
-
-6. **Penanganan Kesalahan**  
-   Memberikan informasi apabila permintaan gagal, koneksi bermasalah, atau API mengembalikan kesalahan.
+1. **Chatbot AI** — Pengguna dapat memasukkan pertanyaan dan menerima jawaban dari AI.
+2. **Riwayat Chat** — Percakapan tersimpan di browser dan dapat dibuka kembali atau dihapus melalui daftar riwayat.
+3. **Prompt Engineering** — Menggunakan instruksi atau prompt untuk mengarahkan gaya dan kualitas respons chatbot.
+4. **Informasi Penggunaan Token** — Menampilkan jumlah token input, token output, dan total token dari respons API jika data tersebut tersedia.
+5. **Batas Penggunaan Token** — Memantau penggunaan token berdasarkan batas yang ditentukan pada aplikasi.
+6. **Dashboard dan Grafik** — Menampilkan visualisasi data penggunaan token agar lebih mudah dipahami.
+7. **Penanganan Kesalahan** — Memberikan informasi apabila permintaan gagal, koneksi bermasalah, atau API mengembalikan kesalahan.
 
 *Catatan: Fitur-fitur tersebut perlu disesuaikan dengan implementasi akhir aplikasi.*
 
@@ -127,34 +117,32 @@ Pastikan perangkat telah memiliki:
 2. Masuk ke folder proyek:
 
    ```bash
-   cd chatbot-prompt-engineering
+   cd KELOMPOK-5-TUGAS-PSC
    ```
 
-3. Masuk ke folder backend:
-
-   ```bash
-   cd backend
-   ```
-
-4. Instal dependensi:
+3. Instal dependensi:
 
    ```bash
    npm install
    ```
 
-5. Buat file `.env` di folder backend, lalu tambahkan API key:
+4. Buat file `.env` di folder proyek, lalu tambahkan konfigurasi:
 
    ```env
+   PORT=3003
    GROQ_API_KEY=masukkan_api_key_anda
+   GROQ_MODEL=openai/gpt-oss-20b
    ```
 
-6. Jalankan backend menggunakan perintah yang tersedia pada `package.json`. Contohnya, jika tersedia skrip `start`:
+5. Jalankan backend dari folder proyek:
 
    ```bash
    npm start
    ```
 
-7. Jalankan frontend sesuai konfigurasi proyek dan pastikan alamat backend yang digunakan sudah sesuai.
+   Backend berjalan pada `http://localhost:3003`. Port ini dibedakan dari server frontend Laragon yang umumnya berjalan pada `http://localhost:3000`.
+
+6. Jalankan frontend melalui Laragon; frontend mengirim permintaan ke backend di `http://localhost:3003`.
 
 **Penting:** Jangan mengunggah file `.env` atau API key ke GitHub. Simpan kredensial secara aman dan gunakan variabel lingkungan pada backend.
 
